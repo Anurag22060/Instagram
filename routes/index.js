@@ -18,8 +18,9 @@ router.get('/login', function(req, res) {
 });
 
 router.get('/feed',isLoggedIn, async function(req, res) {
+  const user = await userModel.findOne({ username: req.session.passport.user });
   const posts = await postModel.find().populate("user");
-  res.render('feed', {footer: true, posts});
+  res.render('feed', {footer: true, posts,user});
 });
 
 router.get('/profile',isLoggedIn, async function(req, res) {
@@ -29,6 +30,21 @@ router.get('/profile',isLoggedIn, async function(req, res) {
 
 router.get('/search',isLoggedIn, function(req, res) {
   res.render('search', {footer: true});
+});
+
+router.get('/like/post/:id',isLoggedIn, async function(req, res) {
+ const user = await userModel.findOne({ username: req.session.passport.user });
+ const post = await postModel.findOne({_id: req.params.id});
+
+ if(post.likes.indexOf(user.id) === -1 ){
+  post.likes.push(user._id);
+ }
+ else{
+  post.likes.splice(post.likes.indexOf(user._id),1);
+ }
+
+ await post.save();
+ res.redirect("/feed");
 });
 
 router.get('/edit',isLoggedIn, async function(req, res) {
@@ -94,7 +110,7 @@ router.post("/upload", isLoggedIn ,upload.single("image"),async function(req,res
 
 router.get('/username/:username',isLoggedIn,async function(req, res) {
     const regex = new RegExp(`^${req.params.username}`,'i');
-    const users = await userModel.findOne({username: regex});
+    const users = await userModel.find({username: regex});
     res.json(users);
 });
 
